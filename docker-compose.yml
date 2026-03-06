@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./dashboard/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    restart: always
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: dashboard/backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the Docker socket so Dockaudit can analyze the host environment
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Persist SQLite database
+      - dockaudit-db:/app/data
+      # Mount the main app source code to reuse the CLI scanners
+      - .:/app/dockaudit-src:ro
+    environment:
+      - DATABASE_URL=sqlite:////app/data/dockaudit.db
+    restart: always
+
+volumes:
+  dockaudit-db:
