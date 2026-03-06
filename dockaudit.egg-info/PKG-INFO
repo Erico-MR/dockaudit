@@ -3,6 +3,8 @@ Name: dockaudit
 Version: 0.1.0
 Summary: Docker infrastructure audit tool
 Author: Erico Rakotonirina
+Project-URL: Homepage, https://github.com/Erico-MR/dockaudit
+Project-URL: Repository, https://github.com/Erico-MR/dockaudit
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: docker
@@ -28,7 +30,7 @@ Or run via Docker:
 ```bash
 docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  erico/dockaudit scan
+  ercdockercr/dockaudit scan
 ```
 
 ## Usage
@@ -42,14 +44,14 @@ dockaudit scan
 Infrastructure Score: 74/100
 
 Security:
-⚠ container running as root
-⚠ exposed redis port
+- container running as root
+- exposed redis port
 
 Performance:
-⚠ memory limit missing on 3 containers
+- memory limit missing on 3 containers
 
 Reliability:
-⚠ restart policy missing
+- restart policy missing
 ```
 
 ## Features
@@ -62,10 +64,6 @@ Reliability:
 
 ## Development
 
-1. Clone the repository.
+1. Clone the repository: `git clone https://github.com/Erico-MR/dockaudit`
 2. Install in editable mode: `pip install -e .`
 3. Run `dockaudit --help`
-
-## License
-
-MIT
