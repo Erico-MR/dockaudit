@@ -1,17 +1,27 @@
-# DockAudit
+<p align="center">
+  <img src="logo.png" width="200" alt="DockAudit Logo">
+</p>
 
-**Audit your Docker infrastructure in seconds.**
+<h1 align="center">DockAudit</h1>
 
-Most Docker infrastructures are misconfigured. I built an open source tool to detect them. 
-DockAudit unifies container security, performance, and reliability checks into a single, fast, beautifully rendered CLI tool, inspired by CIS Docker Benchmarks.
+<p align="center">
+  <strong>The Ultimate Pulse for your Docker Infrastructure.</strong><br>
+  <em>Audit, Secure, and Monitor your containers in seconds.</em>
+</p>
 
-## Installation
+<p align="center">
+  <img src="https://img.shields.io/github/license/Erico-MR/dockaudit" alt="License">
+  <img src="https://img.shields.io/github/v/release/Erico-MR/dockaudit" alt="Latest Release">
+  <img src="https://img.shields.io/github/stars/Erico-MR/dockaudit" alt="GitHub stars">
+</p>
 
-```bash
-pip install dockaudit
-```
+---
 
-Or run via Docker:
+Most Docker infrastructures are misconfigured. **DockAudit** is a production-grade security auditing tool that unifies container security, performance optimization, and reliability checks into a single, fast interface. Inspired by CIS Docker Benchmarks and powered by real-time intelligence.
+
+## Quick Start (CLI)
+
+Audit your entire local environment with one command:
 
 ```bash
 docker run \
@@ -19,53 +29,55 @@ docker run \
   ercdockercr/dockaudit scan
 ```
 
-## Usage
-
+Or install via Pip:
 ```bash
+pip install dockaudit
 dockaudit scan
 ```
 
-To export findings for CI/CD or automated pipelines:
+---
+
+## V1.0.2: DockAudit Dashboard
+
+Experience real-time monitoring with our new high-fidelity dashboard. Designed with a DevSecOps-centric **Glassmorphism** aesthetic, it provides deep visibility into your operational intelligence.
+
+<p align="center">
+  <strong>Global Score • Security Trends • Reliability Metrics • Automated Audits</strong>
+</p>
+
+### Deployment
+
+Deploy the full monitoring stack (Frontend + Backend + DB) using Docker Compose:
+
 ```bash
-dockaudit scan --format json
-dockaudit scan --format sarif
+# Production Deployment
+docker-compose up -d
+
+# Development & Local Build
+docker-compose -f docker-compose-dev.yml up --build
 ```
 
-**Output Example:**
-```text
-⠴ Scanning containers...
-⠴ Scanning images...
-⠴ Scanning networks...
-⠴ Scanning daemon...
+Access the dashboard at `http://localhost:3000`.
 
-Security Findings:
-- container prici-web-1 running as root ✖
-- exposed redis port ✖
-- OSV API: alpine:3.14 vulnerabilities detected ✖
+---
 
-Performance Findings:
-- memory limit missing on 3 containers ✖
+## Key Features
 
-Reliability Findings:
-- restart policy missing ✖
+- **Multi-Vector Security Scan**: Previleged flags, root capabilities, read-only filesystems, and host-breakout risks.
+- **CVE Intelligence**: Integrated with the official **Google OSV API** for real-time vulnerability detection in image layers.
+- **Performance Tuning**: Automatically detects missing resource limits (CPU/Memory) and potential sizing issues.
+- **Reliability Audit**: Validates restart policies, healthchecks, and orchestration best practices.
+- **Secret Detection**: Scans environment variables for leaked credentials, tokens, and sensitive data.
+- **Infrastructure Scoring**: Provides actionable KPIs and letter-grade scoring for your entire setup.
+- **DevOps Native**: Export findings to **SARIF** or **JSON** for seamless integration with GitHub Security or custom pipelines.
 
-Infrastructure Score: 74/100
-Security: 40/100
-Performance: 90/100
-Reliability: 90/100
-```
+---
 
-## Features
+## 🛠️ Development
 
-- **Container Audit**: Privileged flags, root capabilities, read-only filesystems, resource limits.
-- **Image Audit**: Vulnerabilities (via the official Google OSV API database), outdated bases, layer bloat.
-- **Network Audit**: Exposed ports, host network risks.
-- **Host Audit**: Daemon security, TLS, user namespace.
-- **Secrets Audit**: Detects credentials and tokens in environment variables.
-- **CI/CD Integration**: Export to SARIF / JSON directly to GitHub Advanced Security or custom dev security pipelines.
+1. **Clone**: `git clone https://github.com/Erico-MR/dockaudit`
+2. **Setup**: `pip install -e .`
+3. **Explore**: `dockaudit --help`
 
-## Development
+---
 
-1. Clone the repository: `git clone https://github.com/Erico-MR/dockaudit`
-2. Install in editable mode: `pip install -e .`
-3. Run `dockaudit --help`
