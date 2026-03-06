@@ -23,3 +23,8 @@ dockaudit = "dockaudit.cli:app"
 [build-system]
 requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["dockaudit*"]
+exclude = ["dashboard*", "tests*"]
+
