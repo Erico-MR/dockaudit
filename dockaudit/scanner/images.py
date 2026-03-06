@@ -1,11 +1,20 @@
 import docker
 
-def scan_images(client: docker.DockerClient) -> list[dict]:
-    """Extract metadata and attributes for all local Docker images."""
+def scan_images(client: docker.DockerClient, image_name: str = None) -> list[dict]:
+    """Extract metadata and attributes for local Docker images."""
     images_data = []
-    try:
-        images = client.images.list()
-        for i in images:
+    
+    if image_name:
+        # Let ImageNotFound bubble up to the CLI for proper error handling
+        images = [client.images.get(image_name)]
+    else:
+        try:
+            images = client.images.list()
+        except Exception:
+            images = []
+            
+    for i in images:
+        try:
             attrs = i.attrs
             data = {
                 "id": i.id,
@@ -18,7 +27,7 @@ def scan_images(client: docker.DockerClient) -> list[dict]:
                 "os": attrs.get("Os", ""),
             }
             images_data.append(data)
-    except Exception:
-        pass
+        except Exception:
+            pass
         
     return images_data

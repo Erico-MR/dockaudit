@@ -136,10 +136,77 @@ def scan(
         raise typer.Exit(code=1)
 
 @app.command()
-def image(image_name: str = typer.Argument(..., help="Docker image name to audit")):
+def image(
+    image_name: str = typer.Argument(..., help="Docker image name to audit"),
+    format: str = typer.Option("text", "--format", "-f", help="Output format: text, json, sarif")
+):
     """Audit a specific Docker image."""
-    console.print(f"Auditing image: {image_name}")
-    console.print("This command is a placeholder. For full analysis, use 'dockaudit scan'.")
+    try:
+        client = docker.from_env()
+    except Exception as e:
+        console.print(f"[red]Error connecting to Docker daemon: {str(e)}[/red]")
+        raise typer.Exit(code=1)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        
+        progress.add_task(description=f"Scanning image {image_name}...", total=None)
+        try:
+            i_data = scan_images.scan_images(client, image_name)
+        except docker.errors.ImageNotFound:
+            console.print(f"[red]Error: Image '{image_name}' not found locally.[/red]")
+            raise typer.Exit(code=1)
+            
+        if not i_data:
+            console.print(f"[red]Error: Could not retrieve data for image '{image_name}'.[/red]")
+            raise typer.Exit(code=1)
+
+        progress.add_task(description="Analyzing security rules...", total=None)
+        sec_i_crit, sec_i_warn = sec_analyzer.analyze_images_security(i_data)
+        osv_i_crit, osv_i_warn = vuln_analyzer.scan_os_vulnerabilities(i_data)
+        
+        sec_crit = sec_i_crit + osv_i_crit
+        sec_warn = sec_i_warn + osv_i_warn
+        
+        progress.add_task(description="Analyzing performance rules...", total=None)
+        perf_i_crit, perf_i_warn = perf_analyzer.analyze_images_performance(i_data)
+        perf_crit = perf_i_crit
+        perf_warn = perf_i_warn
+        
+        # Images do not generate reliability errors directly right now
+        rel_crit = []
+        rel_warn = []
+
+        scores = calculate_infrastructure_scores(
+            sec_crit, sec_warn,
+            perf_crit, perf_warn,
+            rel_crit, rel_warn
+        )
+        
+    if format == "json":
+        json_str = export.export_json(scores, sec_crit, sec_warn, perf_crit, perf_warn, rel_crit, rel_warn)
+        console.print_json(json_str)
+    elif format == "sarif":
+        sarif_str = export.export_sarif(scores, sec_crit, sec_warn, perf_crit, perf_warn, rel_crit, rel_warn)
+        console.print_json(sarif_str)
+    else:
+        print_findings_table("Image Security Findings", sec_crit, sec_warn, "red")
+        console.print("")
+        print_findings_table("Image Performance Findings", perf_crit, perf_warn, "green")
+        console.print("")
+        
+        score_panel = Panel(
+            f"[bold white]Image Score:[/bold white] {scores['global']}/100\n"
+            f"[bold red]Security:[/bold red]    {scores['security']}/100\n"
+            f"[bold green]Performance:[/bold green] {scores['performance']}/100",
+            title=f"Audit Results: {image_name}",
+            expand=False,
+            border_style="cyan"
+        )
+        console.print(score_panel)
 
 @app.command()
 def swarm():
