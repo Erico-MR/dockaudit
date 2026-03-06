@@ -78,6 +78,9 @@ Access the dashboard at `http://localhost:3000`.
 1. **Clone**: `git clone https://github.com/Erico-MR/dockaudit`
 2. **Setup**: `pip install -e .`
 3. **Explore**: `dockaudit --help`
-
 ---
+
+## 📄 License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
