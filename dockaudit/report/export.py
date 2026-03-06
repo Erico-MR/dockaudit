@@ -45,7 +45,7 @@ def export_sarif(scores: dict, sec_crit: list, sec_warn: list, perf_crit: list, 
                     "driver": {
                         "name": "DockAudit",
                         "informationUri": "https://github.com/Erico-MR/dockaudit",
-                        "version": "1.0.1"
+                        "version": "1.0.2"
                     }
                 },
                 "results": results
