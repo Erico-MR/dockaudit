@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" width="200" alt="DockAudit Logo">
+  <img src="https://raw.githubusercontent.com/Erico-MR/dockaudit/refs/heads/main/logo.png" width="200" alt="DockAudit Logo">
 </p>
 
 <h1 align="center">DockAudit</h1>
