@@ -1,0 +1,24 @@
+[project]
+name = "dockaudit"
+version = "0.1.0"
+description = "Docker infrastructure audit tool"
+readme = "README.md"
+authors = [{name = "Erico Rakotonirina"}]
+dependencies = [
+ "docker",
+ "typer",
+ "rich",
+ "pydantic"
+]
+requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://github.com/Erico-MR/dockaudit"
+Repository = "https://github.com/Erico-MR/dockaudit"
+
+[project.scripts]
+dockaudit = "dockaudit.cli:app"
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
