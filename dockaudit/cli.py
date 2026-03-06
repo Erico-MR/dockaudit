@@ -14,8 +14,10 @@ from dockaudit.scanner import daemon as scan_daemon
 from dockaudit.analyzer import security as sec_analyzer
 from dockaudit.analyzer import performance as perf_analyzer
 from dockaudit.analyzer import reliability as rel_analyzer
+from dockaudit.analyzer import vulnerabilities as vuln_analyzer
 
 from dockaudit.scoring.score import calculate_infrastructure_scores
+from dockaudit.report import export
 
 app = typer.Typer(help="DockAudit - Audit your Docker infrastructure in seconds.")
 console = Console()
@@ -41,7 +43,7 @@ def print_findings_table(title: str, criticals: list, warnings: list, color: str
 
 @app.command()
 def scan(
-    json_output: bool = typer.Option(False, "--json", help="Output report in JSON format"),
+    format: str = typer.Option("text", "--format", "-f", help="Output format: text, json, sarif"),
     fail_on: str = typer.Option("none", "--fail-on", help="Exit with code 1 if issues of this level or higher are found (high, critical)")
 ):
     """
@@ -76,9 +78,12 @@ def scan(
         progress.add_task(description="Analyzing security rules...", total=None)
         sec_c_crit, sec_c_warn = sec_analyzer.analyze_containers_security(c_data)
         sec_i_crit, sec_i_warn = sec_analyzer.analyze_images_security(i_data)
+        osv_i_crit, osv_i_warn = vuln_analyzer.scan_os_vulnerabilities(i_data)
         sec_d_crit, sec_d_warn = sec_analyzer.analyze_daemon_security(d_data)
-        sec_crit = sec_c_crit + sec_i_crit + sec_d_crit
-        sec_warn = sec_c_warn + sec_i_warn + sec_d_warn
+        
+        # Merge security and vulnerability findings
+        sec_crit = sec_c_crit + sec_i_crit + sec_d_crit + osv_i_crit
+        sec_warn = sec_c_warn + sec_i_warn + sec_d_warn + osv_i_warn
         
         progress.add_task(description="Analyzing performance rules...", total=None)
         perf_c_crit, perf_c_warn = perf_analyzer.analyze_containers_performance(c_data)
@@ -98,16 +103,21 @@ def scan(
             rel_crit, rel_warn
         )
 
-    if json_output:
-        report = {
-            "scores": scores,
-            "security": {"critical": sec_crit, "warnings": sec_warn},
-            "performance": {"critical": perf_crit, "warnings": perf_warn},
-            "reliability": {"critical": rel_crit, "warnings": rel_warn},
-        }
-        console.print_json(json.dumps(report))
+    if format == "json":
+        json_str = export.export_json(scores, sec_crit, sec_warn, perf_crit, perf_warn, rel_crit, rel_warn)
+        console.print_json(json_str)
+    elif format == "sarif":
+        sarif_str = export.export_sarif(scores, sec_crit, sec_warn, perf_crit, perf_warn, rel_crit, rel_warn)
+        console.print_json(sarif_str)
     else:
-        # Beautiful CLI Report
+        # Beautiful CLI Report: Findings First, Score Last
+        print_findings_table("Security Findings", sec_crit, sec_warn, "red")
+        console.print("")
+        print_findings_table("Performance Findings", perf_crit, perf_warn, "green")
+        console.print("")
+        print_findings_table("Reliability Findings", rel_crit, rel_warn, "blue")
+        console.print("")
+        
         score_panel = Panel(
             f"[bold white]Infrastructure Score:[/bold white] {scores['global']}/100\n"
             f"[bold red]Security:[/bold red]    {scores['security']}/100\n"
@@ -118,13 +128,6 @@ def scan(
             border_style="cyan"
         )
         console.print(score_panel)
-        console.print("")
-        
-        print_findings_table("Security Findings", sec_crit, sec_warn, "red")
-        console.print("")
-        print_findings_table("Performance Findings", perf_crit, perf_warn, "green")
-        console.print("")
-        print_findings_table("Reliability Findings", rel_crit, rel_warn, "blue")
 
     # Fail logic
     if fail_on == "critical" and (sec_crit or perf_crit or rel_crit):

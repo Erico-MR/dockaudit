@@ -25,28 +25,44 @@ docker run \
 dockaudit scan
 ```
 
+To export findings for CI/CD or automated pipelines:
+```bash
+dockaudit scan --format json
+dockaudit scan --format sarif
+```
+
 **Output Example:**
 ```text
+⠴ Scanning containers...
+⠴ Scanning images...
+⠴ Scanning networks...
+⠴ Scanning daemon...
+
+Security Findings:
+- container prici-web-1 running as root ✖
+- exposed redis port ✖
+- OSV API: alpine:3.14 vulnerabilities detected ✖
+
+Performance Findings:
+- memory limit missing on 3 containers ✖
+
+Reliability Findings:
+- restart policy missing ✖
+
 Infrastructure Score: 74/100
-
-Security:
-- container running as root
-- exposed redis port
-
-Performance:
-- memory limit missing on 3 containers
-
-Reliability:
-- restart policy missing
+Security: 40/100
+Performance: 90/100
+Reliability: 90/100
 ```
 
 ## Features
 
 - **Container Audit**: Privileged flags, root capabilities, read-only filesystems, resource limits.
-- **Image Audit**: Vulnerabilities, outdated bases, layer bloat.
+- **Image Audit**: Vulnerabilities (via the official Google OSV API database), outdated bases, layer bloat.
 - **Network Audit**: Exposed ports, host network risks.
 - **Host Audit**: Daemon security, TLS, user namespace.
 - **Secrets Audit**: Detects credentials and tokens in environment variables.
+- **CI/CD Integration**: Export to SARIF / JSON directly to GitHub Advanced Security or custom dev security pipelines.
 
 ## Development
 
