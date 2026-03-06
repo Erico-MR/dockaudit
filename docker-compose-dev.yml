@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   frontend:
-    image: ercdockercr/dockaudit-dashboard-frontend:latest
+    build:
+      context: ./dashboard/frontend
+      dockerfile: Dockerfile
     ports:
       - "3000:80"
     restart: always
@@ -10,7 +12,9 @@ services:
       - backend
 
   backend:
-    image: ercdockercr/dockaudit-dashboard-backend:latest
+    build:
+      context: .
+      dockerfile: dashboard/backend/Dockerfile
     ports:
       - "8000:8000"
     volumes:
@@ -18,6 +22,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Persist SQLite database
       - dockaudit-db:/app/data
+      # Mount the main app source code to reuse the CLI scanners
+      - .:/app/dockaudit-src:ro
     environment:
       - DATABASE_URL=sqlite:////app/data/dockaudit.db
     restart: always
