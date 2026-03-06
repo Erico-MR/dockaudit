@@ -13,6 +13,8 @@ from dockaudit.scanner import containers as scan_containers
 from dockaudit.scanner import images as scan_images
 from dockaudit.scanner import network as scan_networks
 from dockaudit.scanner import daemon as scan_daemon
+from dockaudit.scanner import volumes as scan_volumes
+from dockaudit.scanner import swarm as scan_swarm
 from dockaudit.analyzer import security as sec_analyzer
 from dockaudit.analyzer import performance as perf_analyzer
 from dockaudit.analyzer import reliability as rel_analyzer
@@ -47,7 +49,9 @@ def trigger_scan(db: Session = Depends(database.get_db)):
     # Scanning Phase
     c_data = scan_containers.scan_containers(client)
     i_data = scan_images.scan_images(client)
-    _ = scan_networks.scan_networks(client)
+    n_data = scan_networks.scan_networks(client)
+    v_data = scan_volumes.scan_volumes(client)
+    s_data = scan_swarm.scan_swarm(client)
     d_data = scan_daemon.scan_daemon(client)
     
     # Analysis Phase
@@ -55,9 +59,12 @@ def trigger_scan(db: Session = Depends(database.get_db)):
     sec_i_crit, sec_i_warn = sec_analyzer.analyze_images_security(i_data)
     osv_i_crit, osv_i_warn = vuln_analyzer.scan_os_vulnerabilities(i_data)
     sec_d_crit, sec_d_warn = sec_analyzer.analyze_daemon_security(d_data)
+    sec_n_crit, sec_n_warn = sec_analyzer.analyze_networks_security(n_data)
+    sec_v_crit, sec_v_warn = sec_analyzer.analyze_volumes_security(v_data, c_data)
+    sec_s_crit, sec_s_warn = sec_analyzer.analyze_swarm_security(s_data)
     
-    sec_crit = sec_c_crit + sec_i_crit + sec_d_crit + osv_i_crit
-    sec_warn = sec_c_warn + sec_i_warn + sec_d_warn + osv_i_warn
+    sec_crit = sec_c_crit + sec_i_crit + sec_d_crit + osv_i_crit + sec_n_crit + sec_v_crit + sec_s_crit
+    sec_warn = sec_c_warn + sec_i_warn + sec_d_warn + osv_i_warn + sec_n_warn + sec_v_warn + sec_s_warn
     
     perf_c_crit, perf_c_warn = perf_analyzer.analyze_containers_performance(c_data)
     perf_i_crit, perf_i_warn = perf_analyzer.analyze_images_performance(i_data)

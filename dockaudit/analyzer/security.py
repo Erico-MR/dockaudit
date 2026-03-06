@@ -84,3 +84,62 @@ def analyze_daemon_security(daemon: dict) -> tuple[list[dict], list[dict]]:
         warnings.append({"component": "daemon", "rule": "User namespaces disabled", "message": "Docker daemon does not have user namespace remapping enabled. This risks root escalation.", "type": "daemon"})
         
     return [], warnings
+
+def analyze_networks_security(networks: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Analyze networks for security misconfigurations."""
+    critical = []
+    warnings = []
+    
+    for n in networks:
+        name = n["name"]
+        driver = n.get("driver", "")
+        
+        # 1. Default bridge usage
+        if name == "bridge" and n.get("containers"):
+            warnings.append({"component": name, "rule": "Default bridge used", "message": "Default bridge network is used by containers. User-defined networks are recommended for better isolation.", "type": "network"})
+            
+        # 2. ICC enabled on bridge
+        if driver == "bridge" and n.get("icc"):
+            warnings.append({"component": name, "rule": "Inter-container communication enabled", "message": f"Network {name} has ICC enabled. This allows all containers on this network to talk to each other.", "type": "network"})
+            
+        # 3. Unencrypted overlay
+        if driver == "overlay" and not n.get("encrypted"):
+             critical.append({"component": name, "rule": "Unencrypted overlay network", "message": f"Overlay network {name} is unencrypted. Traffic between nodes is visible.", "type": "network"})
+
+    return critical, warnings
+
+def analyze_volumes_security(volumes: list[dict], containers: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Analyze volumes and mounts for security risks."""
+    critical = []
+    warnings = []
+    
+    # Check container mounts for host sensitivity
+    SENSITIVE_PATHS = ["/var/run/docker.sock", "/etc", "/root", "/var/lib/docker"]
+    
+    for c in containers:
+        mounts = c.get("mounts", [])
+        for m in mounts:
+            source = m.get("Source", "")
+            if any(p in source for p in SENSITIVE_PATHS) and not m.get("RW", False) == False:
+                 critical.append({"component": c["name"], "rule": "Sensitive host mount", "message": f"Container {c['name']} mounts sensitive host path {source} with write access.", "type": "volume"})
+
+    return critical, warnings
+
+def analyze_swarm_security(swarm: dict) -> tuple[list[dict], list[dict]]:
+    """Analyze Swarm configuration."""
+    critical = []
+    warnings = []
+    
+    if not swarm.get("active"):
+        return [], []
+        
+    # 1. Auto-lock disabled
+    if not swarm.get("unlock_key_set"):
+        warnings.append({"component": "swarm", "rule": "Swarm auto-lock disabled", "message": "Swarm auto-lock is disabled. Manager certificates are not encrypted at rest.", "type": "swarm"})
+        
+    # 2. Single manager
+    managers = [n for n in swarm.get("nodes", []) if n["role"] == "manager"]
+    if len(managers) == 1:
+        warnings.append({"component": "swarm", "rule": "Single manager cluster", "message": "Swarm cluster has only one manager. High availability is not guaranteed.", "type": "swarm"})
+        
+    return critical, warnings

@@ -10,6 +10,8 @@ from dockaudit.scanner import containers as scan_containers
 from dockaudit.scanner import images as scan_images
 from dockaudit.scanner import network as scan_networks
 from dockaudit.scanner import daemon as scan_daemon
+from dockaudit.scanner import volumes as scan_volumes
+from dockaudit.scanner import swarm as scan_swarm
 
 from dockaudit.analyzer import security as sec_analyzer
 from dockaudit.analyzer import performance as perf_analyzer
@@ -69,7 +71,13 @@ def scan(
         i_data = scan_images.scan_images(client)
         
         progress.add_task(description="Scanning networks...", total=None)
-        _ = scan_networks.scan_networks(client) # Data collected but not scored yet
+        n_data = scan_networks.scan_networks(client)
+        
+        progress.add_task(description="Scanning volumes...", total=None)
+        v_data = scan_volumes.scan_volumes(client)
+        
+        progress.add_task(description="Scanning swarm...", total=None)
+        s_data = scan_swarm.scan_swarm(client)
         
         progress.add_task(description="Scanning daemon...", total=None)
         d_data = scan_daemon.scan_daemon(client)
@@ -80,10 +88,13 @@ def scan(
         sec_i_crit, sec_i_warn = sec_analyzer.analyze_images_security(i_data)
         osv_i_crit, osv_i_warn = vuln_analyzer.scan_os_vulnerabilities(i_data)
         sec_d_crit, sec_d_warn = sec_analyzer.analyze_daemon_security(d_data)
+        sec_n_crit, sec_n_warn = sec_analyzer.analyze_networks_security(n_data)
+        sec_v_crit, sec_v_warn = sec_analyzer.analyze_volumes_security(v_data, c_data)
+        sec_s_crit, sec_s_warn = sec_analyzer.analyze_swarm_security(s_data)
         
         # Merge security and vulnerability findings
-        sec_crit = sec_c_crit + sec_i_crit + sec_d_crit + osv_i_crit
-        sec_warn = sec_c_warn + sec_i_warn + sec_d_warn + osv_i_warn
+        sec_crit = sec_c_crit + sec_i_crit + sec_d_crit + osv_i_crit + sec_n_crit + sec_v_crit + sec_s_crit
+        sec_warn = sec_c_warn + sec_i_warn + sec_d_warn + osv_i_warn + sec_n_warn + sec_v_warn + sec_s_warn
         
         progress.add_task(description="Analyzing performance rules...", total=None)
         perf_c_crit, perf_c_warn = perf_analyzer.analyze_containers_performance(c_data)
@@ -209,9 +220,45 @@ def image(
         console.print(score_panel)
 
 @app.command()
-def swarm():
-    """Audit a Docker Swarm cluster."""
-    console.print("Swarm auditing is coming in v0.2!")
+def swarm(
+    format: str = typer.Option("text", "--format", "-f", help="Output format: text, json")
+):
+    """Audit a Docker Swarm cluster specifically."""
+    try:
+        client = docker.from_env()
+    except Exception as e:
+        console.print(f"[red]Error connecting to Docker daemon: {str(e)}[/red]")
+        raise typer.Exit(code=1)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        progress.add_task(description="Auditing Swarm Cluster...", total=None)
+        s_data = scan_swarm.scan_swarm(client)
+        configs = scan_swarm.scan_configs(client)
+        secrets = scan_swarm.scan_secrets(client)
+        
+        sec_crit, sec_warn = sec_analyzer.analyze_swarm_security(s_data)
+        
+        # Additional checks for configs/secrets (just basic counts for now)
+        if s_data.get("active"):
+            for config in configs:
+                # Add a warning if config name contains sensitive words (just as an example check)
+                if any(word in config["name"].lower() for word in ["pass", "key", "token"]):
+                    sec_warn.append({"component": f"Config: {config['name']}", "rule": "Potential secret in Config", "message": "Docker Configs are unencrypted. Use Docker Secrets for sensitive data.", "type": "swarm"})
+
+    if format == "json":
+        console.print_json(data={"swarm": s_data, "findings": {"critical": sec_crit, "warnings": sec_warn}})
+    else:
+        if not s_data.get("active"):
+            console.print("[yellow]Swarm mode is not active on this node.[/yellow]")
+            return
+
+        console.print(Panel(f"[bold cyan]Swarm Cluster ID:[/bold cyan] {s_data['id']}\n[bold cyan]Nodes:[/bold cyan] {len(s_data['nodes'])}", title="Swarm Mode Status"))
+        console.print("")
+        print_findings_table("Swarm Security Audit", sec_crit, sec_warn, "red")
 
 @app.command()
 def doctor():
