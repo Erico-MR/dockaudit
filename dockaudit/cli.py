@@ -67,7 +67,7 @@ def scan(
         i_data = scan_images.scan_images(client)
         
         progress.add_task(description="Scanning networks...", total=None)
-        n_data = scan_networks.scan_networks(client)
+        _ = scan_networks.scan_networks(client) # Data collected but not scored yet
         
         progress.add_task(description="Scanning daemon...", total=None)
         d_data = scan_daemon.scan_daemon(client)

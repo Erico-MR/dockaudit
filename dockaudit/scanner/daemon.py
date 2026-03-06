@@ -18,7 +18,7 @@ def scan_daemon(client: docker.DockerClient) -> dict:
             "default_runtime": info.get("DefaultRuntime", ""),
             "swarm_status": info.get("Swarm", {}).get("LocalNodeState", "inactive")
         }
-    except Exception as e:
+    except Exception:
         pass
         
     return daemon_data

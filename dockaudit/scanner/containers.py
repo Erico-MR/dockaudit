@@ -32,7 +32,7 @@ def scan_containers(client: docker.DockerClient) -> list[dict]:
                 "ports": network_settings.get("Ports", {}),
             }
             containers_data.append(data)
-    except Exception as e:
+    except Exception:
         pass
     
     return containers_data

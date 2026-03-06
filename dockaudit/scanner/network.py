@@ -17,7 +17,7 @@ def scan_networks(client: docker.DockerClient) -> list[dict]:
                 "containers": list(attrs.get("Containers", {}).keys()),
             }
             networks_data.append(data)
-    except Exception as e:
+    except Exception:
         pass
         
     return networks_data

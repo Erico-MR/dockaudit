@@ -18,7 +18,7 @@ def scan_images(client: docker.DockerClient) -> list[dict]:
                 "os": attrs.get("Os", ""),
             }
             images_data.append(data)
-    except Exception as e:
+    except Exception:
         pass
         
     return images_data
