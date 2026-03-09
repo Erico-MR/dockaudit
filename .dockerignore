@@ -1,0 +1,7 @@
+tests
+.github
+.git
+.gitignore
+dashboard
+docker-compose*
+*.md
