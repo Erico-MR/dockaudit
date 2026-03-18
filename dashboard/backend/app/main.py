@@ -23,7 +23,27 @@ from dockaudit.scoring.score import calculate_infrastructure_scores
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="DockAudit Dashboard API")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Run an initial audit to populate the database if empty
+    db = database.SessionLocal()
+    try:
+        # Check if any scans exist, if not, run one
+        existing_scan = db.query(models.ScanHistory).first()
+        if not existing_scan:
+            print("No previous scans found. Running auto-audit on startup...")
+            trigger_scan(db)
+            print("Auto-audit completed.")
+    except Exception as e:
+        print(f"Failed to run startup audit: {e}")
+    finally:
+        db.close()
+    yield
+    # Shutdown logic (none needed)
+
+app = FastAPI(title="DockAudit Dashboard API", lifespan=lifespan)
 
 # Allow CORS for React frontend
 app.add_middleware(
@@ -112,3 +132,40 @@ def get_latest_scan(db: Session = Depends(database.get_db)):
     if not scan:
         raise HTTPException(status_code=404, detail="No scans found")
     return scan
+
+@app.get("/api/inventory/containers")
+def get_inventory_containers():
+    """Retrieve running containers inventory."""
+    client = docker.from_env()
+    return scan_containers.scan_containers(client)
+
+@app.get("/api/inventory/images")
+def get_inventory_images():
+    """Retrieve locally available images inventory."""
+    client = docker.from_env()
+    return scan_images.scan_images(client)
+
+@app.get("/api/inventory/networks")
+def get_inventory_networks():
+    """Retrieve docker networks inventory."""
+    client = docker.from_env()
+    return scan_networks.scan_networks(client)
+
+@app.get("/api/inventory/volumes")
+def get_inventory_volumes():
+    """Retrieve docker volumes inventory."""
+    client = docker.from_env()
+    return scan_volumes.scan_volumes(client)
+
+@app.get("/api/inventory/swarm")
+def get_inventory_swarm():
+    """Retrieve Swarm cluster status and node inventory."""
+    client = docker.from_env()
+    s_data = scan_swarm.scan_swarm(client)
+    configs = scan_swarm.scan_configs(client)
+    secrets = scan_swarm.scan_secrets(client)
+    return {
+        "status": s_data,
+        "configs": configs,
+        "secrets": secrets
+    }

@@ -39,10 +39,12 @@ def analyze_containers_security(containers: list[dict]) -> tuple[list[dict], lis
                 critical.append({"component": name, "rule": "Dangerous capability", "message": f"Container {name} has dangerous capability added: {cap}", "type": "container"})
                 
         # 5. Secrets in ENV
+        SAFE_ENV_VARS = {"GPG_KEY", "NODE_VERSION", "YARN_VERSION", "PYTHON_VERSION", "PYTHON_PIP_VERSION", "NPM_CONFIG_LOGLEVEL"}
         envs = c.get("env", [])
         for env in envs:
-            if SECRET_REGEX.search(env):
-                critical.append({"component": name, "rule": "Secret in environment variable", "message": f"Container {name} likely exposes a secret in environment variables: {env.split('=')[0]}", "type": "container"})
+            env_name = env.split('=')[0]
+            if env_name.upper() not in SAFE_ENV_VARS and SECRET_REGEX.search(env_name + "="):
+                critical.append({"component": name, "rule": "Secret in environment variable", "message": f"Container {name} likely exposes a secret in environment variables: {env_name}", "type": "container"})
                 
         # 6. Exposed dangerous ports
         ports = c.get("ports", {})

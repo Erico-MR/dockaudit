@@ -1,13 +1,13 @@
 import React from 'react';
-import { Home, BarChart2, Layers, Settings, Shield, Activity, HelpCircle } from 'lucide-react';
+import { Home, BarChart2, Layers, Settings, Shield, Activity, HelpCircle, Database, Network } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
         onClick={onClick}
         className={`w-full flex items-center gap-3 px-4 py-3 transition-all duration-200 border-l-2 ${active
-                ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400'
-                : 'border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400'
+            : 'border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
             }`}
     >
         <Icon size={20} />
@@ -50,6 +50,18 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                     label="Image Registry"
                     active={activeTab === 'images'}
                     onClick={() => setActiveTab('images')}
+                />
+                <SidebarItem
+                    icon={Database}
+                    label="Volumes"
+                    active={activeTab === 'volumes'}
+                    onClick={() => setActiveTab('volumes')}
+                />
+                <SidebarItem
+                    icon={Network}
+                    label="Swarm Cluster"
+                    active={activeTab === 'swarm'}
+                    onClick={() => setActiveTab('swarm')}
                 />
                 <SidebarItem
                     icon={Shield}

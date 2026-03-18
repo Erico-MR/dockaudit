@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y gcc sqlite3 && rm -rf /var/lib/apt/list
 COPY dashboard/backend/requirements.txt .
 
 # Copy dockaudit source into the image so we can install it
-COPY pyproject.toml README.md /app/dockaudit-src/
+COPY pyproject.toml /app/dockaudit-src/
 COPY dockaudit /app/dockaudit-src/dockaudit
 
 # Install dockaudit and backend requirements

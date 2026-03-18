@@ -2,6 +2,6 @@ tests
 .github
 .git
 .gitignore
-dashboard
+dashboard/frontend
 docker-compose*
 *.md

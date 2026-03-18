@@ -11,26 +11,57 @@ function Dashboard() {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // Fetch logic would go here
-        setTimeout(() => {
-            setLatestScan({
-                global_score: 72,
-                security_score: 55,
-                performance_score: 90,
-                reliability_score: 95,
-                findings_json: "{}"
-            });
-
-            setHistory([
-                { time: '10:00', score: 45, security: 20 },
-                { time: '11:00', score: 55, security: 35 },
-                { time: '12:00', score: 55, security: 35 },
-                { time: '13:00', score: 72, security: 55 }
+    const fetchDashboardData = async () => {
+        setLoading(true);
+        try {
+            const [latestRes, historyRes] = await Promise.all([
+                axios.get('/api/scans/latest').catch(() => null),
+                axios.get('/api/scans/history?limit=10')
             ]);
-            setLoading(false);
-        }, 800);
+
+            if (latestRes && latestRes.data) {
+                setLatestScan(latestRes.data);
+            } else {
+                setLatestScan({
+                    global_score: 0, security_score: 0, performance_score: 0, reliability_score: 0, findings_json: "{}"
+                });
+            }
+
+            if (historyRes && historyRes.data) {
+                // Reverse to show chronological order left to right
+                const formattedHistory = historyRes.data.reverse().map(scan => {
+                    const d = new Date(scan.timestamp);
+                    return {
+                        time: `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`,
+                        score: scan.global_score,
+                        security: scan.security_score,
+                        performance: scan.performance_score,
+                        reliability: scan.reliability_score
+                    };
+                });
+                setHistory(formattedHistory);
+            }
+        } catch (error) {
+            console.error("Failed to fetch dashboard data:", error);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchDashboardData();
     }, []);
+
+    const executeAudit = async () => {
+        setLoading(true);
+        try {
+            await axios.post('/api/scan');
+            await fetchDashboardData();
+        } catch (error) {
+            console.error("Failed to execute audit:", error);
+            setLoading(false);
+        }
+    };
+
 
     const scoreData = [
         { name: 'Passing', value: latestScan?.global_score || 0 },
@@ -48,6 +79,24 @@ function Dashboard() {
         );
     }
 
+    if (!latestScan || latestScan.global_score === undefined) {
+        return (
+            <div className="flex items-center justify-center h-full w-full bg-dockaudit-bg p-8">
+                <div className="glass-panel p-12 flex flex-col items-center gap-6 max-w-lg text-center">
+                    <ShieldAlert size={48} className="text-slate-500" />
+                    <div>
+                        <h2 className="text-xl font-bold text-white mb-2">No Audit Data Found</h2>
+                        <p className="text-slate-400 text-sm">Your infrastructure has not been scanned yet. Execute your first audit to generate operational intelligence metrics.</p>
+                    </div>
+                    <button onClick={executeAudit} className="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3 rounded-lg font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2">
+                        <Activity size={18} /> Execute First Audit
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+
     return (
         <div className="p-8 max-w-full space-y-8 animate-in fade-in duration-500">
 
@@ -61,10 +110,10 @@ function Dashboard() {
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-xs text-slate-500 bg-slate-800/50 px-2 py-1 rounded">Last scan: 2 mins ago</span>
-                    <button className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg transition-colors">
+                    <button onClick={fetchDashboardData} className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg transition-colors">
                         <RefreshCw size={18} />
                     </button>
-                    <button className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all shadow-lg shadow-cyan-500/10 flex items-center gap-2">
+                    <button onClick={executeAudit} className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all shadow-lg shadow-cyan-500/10 flex items-center gap-2">
                         Execute Audit
                     </button>
                 </div>
@@ -158,23 +207,38 @@ function Dashboard() {
                 <div className="bg-orange-500/5 px-6 py-4 border-b border-white/5 flex justify-between items-center">
                     <h2 className="font-bold text-slate-200 flex items-center gap-2 uppercase tracking-wider text-xs">
                         <AlertTriangle size={14} className="text-orange-400" />
-                        Operational Risks
+                        Operational Risks (Critical Findings)
                     </h2>
-                    <span className="bg-orange-500/20 text-orange-400 text-[10px] font-black px-2 py-0.5 rounded uppercase">2 active</span>
                 </div>
                 <div className="divide-y divide-white/5">
-                    <AlertItem
-                        title="Insecure Image Tag Configuration"
-                        description="Image prici-web:latest uses 'latest' tag which facilitates non-deterministic deployments."
-                        severity="high"
-                        code="DA-SEC-012"
-                    />
-                    <AlertItem
-                        title="Root Execution Detected"
-                        description="Container 'db-1' is running with root privileges which increases host breakout risk."
-                        severity="high"
-                        code="DA-SEC-005"
-                    />
+                    {(() => {
+                        try {
+                            const findings = JSON.parse(latestScan?.findings_json || "{}");
+                            const criticals = [
+                                ...(findings.security?.critical || []),
+                                ...(findings.performance?.critical || []),
+                                ...(findings.reliability?.critical || [])
+                            ];
+
+                            if (criticals.length === 0) {
+                                return (
+                                    <div className="px-6 py-5 text-sm text-slate-400">No critical operational risks found.</div>
+                                );
+                            }
+
+                            return criticals.map((crit, idx) => (
+                                <AlertItem
+                                    key={idx}
+                                    title={crit.rule}
+                                    description={`[${crit.component}] ${crit.message}`}
+                                    severity="high"
+                                    code={`DA-${crit.type.toUpperCase()}`}
+                                />
+                            ));
+                        } catch (e) {
+                            return <div className="px-6 py-5 text-sm text-slate-400">Error parsing findings.</div>;
+                        }
+                    })()}
                 </div>
             </div>
 

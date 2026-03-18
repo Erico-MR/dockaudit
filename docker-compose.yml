@@ -11,8 +11,6 @@ services:
 
   backend:
     image: ercdockercr/dockaudit-dashboard-backend:latest
-    ports:
-      - "8000:8000"
     volumes:
       # Mount the Docker socket so Dockaudit can analyze the host environment
       - /var/run/docker.sock:/var/run/docker.sock:ro
