@@ -41,6 +41,7 @@ dockaudit scan
 
 Experience real-time monitoring with our new high-fidelity dashboard. Designed with a DevSecOps-centric **Glassmorphism** aesthetic, it provides deep visibility into your operational intelligence.
 
+<img src="https://raw.githubusercontent.com/Erico-MR/dockaudit/refs/heads/main/screenshot/screen-dashboard.png" alt="DockAudit Dashboard">
 <p align="center">
   <strong>Global Score • Security Trends • Reliability Metrics • Automated Audits</strong>
 </p>
