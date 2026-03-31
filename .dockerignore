@@ -5,3 +5,4 @@ tests
 dashboard/frontend
 docker-compose*
 *.md
+data/
